@@ -1,0 +1,49 @@
+.env
+/venv# Environment
+.env
+.env.local
+.env.production
+.env.*.local
+.env.*.production
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+env.bak/
+venv.bak/
+.ENV/
+.dockerenv
+.docker/
+*.tar
+*.tar.*
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+*.out
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.db-journal
+data/
+dump.sql
+
+# Build
+dist/
+build/
+*.egg-info/

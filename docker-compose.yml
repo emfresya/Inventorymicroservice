@@ -1,0 +1,144 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # -------------------------------------------------
+  # PostgreSQL Database
+  # -------------------------------------------------
+  db:
+    image: postgres:latest
+    container_name: pg-db
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------
+  # Flyway Migrations
+  # -------------------------------------------------
+  flyway:
+    image: flyway/flyway:10
+    container_name: flyway-migrate
+    env_file: .env
+    command: >
+      -url=jdbc:postgresql://db:${DB_PORT}/${DB_NAME}
+      -user=${DB_USER}
+      -password=${DB_PASSWORD}
+      -locations=filesystem:/flyway/sql
+      -connectRetries=60
+      migrate
+    volumes:
+      - ./migrations:/flyway/sql
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # -------------------------------------------------
+  # Redis (для кэширования и Celery)
+  # -------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+
+  # -------------------------------------------------
+  # FastAPI Application (Inventory Service)
+  # -------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventory-app
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # -------------------------------------------------
+  # Celery Worker (для фоновых задач — опционально)
+  # -------------------------------------------------
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    container_name: celery-worker
+    env_file: .env
+    volumes:
+      - ./scripts:/scripts
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    command: celery -A app.celery_app worker --loglevel=info  # ← изменено
+  # -------------------------------------------------
+  # Celery Beat (планировщик — опционально)
+  # -------------------------------------------------
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    container_name: celery-beat
+    env_file: .env
+    command: celery -A app.celery_app beat --loglevel=info  # ← изменено
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # -------------------------------------------------
+  # Flower (мониторинг Celery — опционально)
+  # -------------------------------------------------
+  flower:
+    image: mher/flower:2.0.1
+    container_name: flower-monitor
+    env_file: .env
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - FLOWER_PORT=5555
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  fill-data:
+      build:
+        context: .
+        dockerfile: Dockerfile  # используем тот же Dockerfile, что и для app
+      container_name: fill-test-data
+      env_file: .env
+      command: python fill_test_data.py
+      depends_on:
+        - db
+        - flyway
+      volumes:
+        - .:/app
+
+# -------------------------------------------------
+# Volumes for persistent data
+# -------------------------------------------------
+volumes:
+  pg_data:
+  redis_data:
