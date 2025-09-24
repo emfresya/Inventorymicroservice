@@ -193,7 +193,8 @@ POST /orders/{order_id}/items
     Если нет → создаёт новую позицию.
 
 
-```json{
+```json
+{
   "order_item_id": 5,
   "order_id": 10,
   "product_id": 1,
