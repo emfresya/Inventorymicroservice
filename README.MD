@@ -1,6 +1,10 @@
 # Inventory Service
 
+## Даталогическая схема 
+<details>
+<summary>Даталогическая схема (нажмите, чтобы открыть)</summary>
 ![Даталогическая схема](https://raw.githubusercontent.com/emfresya/Inventorymicroservice/refs/heads/main/DataDiagram.svg)
+</details>
 
 
 ### Таблицы:
