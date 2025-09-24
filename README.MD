@@ -7,14 +7,16 @@
 
 
 ### Таблицы:
-```categories
+## **categories**
+```
     category_id (PK, INT, AUTO_INCREMENT) — уникальный ID категории,
     name (VARCHAR) — наименование,
     parent_id (FK → categories.category_id) — родительская категория (NULL = корень),
     path (VARCHAR) — путь в дереве (например, /1/5/23/) — для быстрого поиска поддерева,
     level (INT) — уровень вложенности (0 = корень).
 ```
-```products
+## **products**
+```
     product_id (PK, INT, AUTO_INCREMENT) — уникальный ID товара,
     sku (VARCHAR, UNIQUE) — артикул,
     name (VARCHAR) — наименование,
@@ -23,7 +25,8 @@
     category_id (FK → categories.category_id) — категория товара,
     root_category_id (FK → categories.category_id) — корневая категория (для оптимизации отчётов).
 ```
-```clients
+## **clients**
+```
     client_id (PK, INT, AUTO_INCREMENT) — уникальный ID клиента,
     name (VARCHAR) — наименование,
     address (TEXT) — адрес,
@@ -32,28 +35,33 @@
     status_id (PK, SMALLINT) — ID статуса,
     status_name (VARCHAR, UNIQUE) — наименование (например, "новый", "подтверждён", "отменён").
 ```
-```orders
+## **orders**
+```
     order_id (PK, INT, AUTO_INCREMENT) — уникальный ID заказа,
     client_id (FK → clients.client_id) — клиент,
     status_id (FK → order_statuses.status_id) — статус,
     order_date (TIMESTAMP) — дата создания,
     total_sum (NUMERIC(14,2)) — сумма заказа.
 ```
-```order_items
+
+## **order_items**
+```
     order_item_id (PK, INT, AUTO_INCREMENT) — уникальный ID позиции,
     order_id (FK → orders.order_id) — заказ,
     product_id (FK → products.product_id) — товар,
     quantity (INT, CHECK > 0) — количество,
     price_at_order (NUMERIC(12,2), CHECK ≥ 0) — цена на момент заказа.
 ```
-```monthly_product_sales (оптимизационная таблица)
+## **monthly_product_sales (оптимизационная таблица)**
+```
     year_month (CHAR(7)) — месяц (например, "2024-09"),
     product_id (FK → products.product_id),
     root_category_id (FK → categories.category_id),
     total_quantity (INT) — общее количество проданного за месяц,
     last_updated (TIMESTAMP) — время обновления.
 ```
-```aggregation_metadata (служебная таблица)
+## ** aggregation_metadata (служебная таблица)**
+```
     job_name (TEXT, PK) — имя задачи (например, "monthly_sales"),
     last_processed_order_date (TIMESTAMP) — дата последнего обновления агрегатов.
 ```
